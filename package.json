@@ -4,8 +4,9 @@
   "description": "A registry.",
   "main": "dist/index.js",
   "scripts": {
-    "clear": "npx rimraf dist",
-    "build": "npx webpack --mode production"
+    "build:clear": "npx rimraf dist",
+    "build:construct": "npx webpack --mode production",
+    "build": "npm run build:clear && npm run build:construct"
   },
   "repository": {
     "type": "git",
