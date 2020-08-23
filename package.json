@@ -3,6 +3,7 @@
   "version": "1.0.2",
   "description": "A JavaScript library that simulates the registry.",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build:clear": "npx rimraf dist",
     "build:construct": "npx webpack --mode production",
