@@ -48,9 +48,12 @@ let ready = async function () {
   return Registry
 }()
 
-type Change = { entry: Array<RegistryKey>, value: string | number }
+interface Change {
+  entry: RegistryEntry
+  value: RegistryValue
+}
 
-let changeHandler: ( param: Change ) => void = function ( { entry, value } ) {
+let changeHandler: ( change: Change ) => void = function ( { entry, value } ) {
   let old = chainGet( entry.slice() )
 
   if ( value !== old ) {
