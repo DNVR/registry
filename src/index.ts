@@ -8,7 +8,6 @@ const REGISTRY = '?registry'
 
 let {
   Reflect: {
-    construct,
     ownKeys,
     deleteProperty
   },
@@ -134,9 +133,8 @@ type RegistryEntry = Array<RegistryKey>
 type RegistryValue = string | number
 
 const Registry = {
-  async set ( array: RegistryEntry, value: RegistryValue ) {
-    await ready
-    changeHandler( { entry: array, value: value } )
+  set ( array: RegistryEntry, value: RegistryValue ) {
+    ready.then( () => changeHandler( { entry: array, value: value } ) )
   },
   get ( array: RegistryEntry ) {
     let current = new Proxy( RegistryBundle, chainHandler )
