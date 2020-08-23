@@ -1,8 +1,17 @@
 import MessageNexus from '@dnvr/message-nexus'
 
+type RegistryKey = string | number
+type RegistryEntry = Array<RegistryKey>
+type RegistryValue = string | number
 
+interface RegistryEndpoint {
+  _: RegistryValue
+}
 
-
+interface RegistryType {
+  [ key: string ]: RegistryType & RegistryEndpoint
+  [ key: number ]: RegistryType & RegistryEndpoint
+}
 
 const REGISTRY = '?registry'
 
@@ -53,8 +62,8 @@ let changeHandler: ( param: Change ) => void = function ( { entry, value } ) {
   }
 }
 
-const chainHandler: ProxyHandler<RegistryObjectType> = {
-  get ( target, name: keyof RegistryObjectType ) {
+const chainHandler: ProxyHandler<RegistryType> = {
+  get ( target, name: keyof RegistryType ) {
     switch ( name ) {
       case 'value':
         return target._
@@ -65,7 +74,7 @@ const chainHandler: ProxyHandler<RegistryObjectType> = {
         return new Proxy( target[ name ], chainHandler )
     }
   },
-  set ( target, name: keyof RegistryObjectType, value: string | number ) {
+  set ( target, name: keyof RegistryType, value: string | number ) {
 
     if ( '_' === name || 'value' === name || 'object' === typeof value && null !== value ) {
       return false
@@ -95,12 +104,12 @@ const chainSet = function ( array: RegistryEntry, value: string | number ): void
   while ( array.length >= 2 ) {
     current = current[ array.shift() ]
   }
-  // @ts-ignore
+  // @ts-expect-error
   current[ array.shift() ] = value
 }
 
-const chainCleanup = function ( obj: RegistryObjectType ) {
-  ( ownKeys( obj ) as Array<string> ).forEach( ( entry ) => {
+const chainCleanup = function ( obj: RegistryType ) {
+  void ( ownKeys( obj ) as Array<string> ).forEach( ( entry ) => {
     if ( '_' !== entry ) {
       if ( chainCleanup( obj[ entry ] ) ) {
         deleteProperty( obj, entry )
@@ -120,28 +129,14 @@ const chainCleanup = function ( obj: RegistryObjectType ) {
 
 
 
-let RegistryBundle: RegistryObjectType = null
-
-type RegistryObjectType = {
-  _?: any
-  [ key: string ]: RegistryObjectType
-  [ key: number ]: RegistryObjectType
-}
-
-type RegistryKey = string | number
-type RegistryEntry = Array<RegistryKey>
-type RegistryValue = string | number
+let RegistryBundle: RegistryType = null
 
 const Registry = {
   set ( array: RegistryEntry, value: RegistryValue ) {
     ready.then( () => changeHandler( { entry: array, value: value } ) )
   },
   get ( array: RegistryEntry ) {
-    let current = new Proxy( RegistryBundle, chainHandler )
-    while ( array.length ) {
-      current = current[ array.shift() ]
-    }
-    return current.value
+    return chainGet( array )
   },
   watch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
     RegistryEvent.subscribe( array.slice(), fn )
