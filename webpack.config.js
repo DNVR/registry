@@ -12,11 +12,11 @@ module.exports = {
       }
     ],
   },
-  plugins: [
-    new WorkerPlugin({
-      sharedWorker: true
-    })
-  ],
+  // plugins: [
+  //   new WorkerPlugin({
+  //     sharedWorker: true
+  //   })
+  // ],
   output: {
     filename: 'index.js',
     path: path.resolve( __dirname, 'dist' ),
