@@ -25,28 +25,12 @@ let {
   }
 } = self
 
-let Server: Cache = null
+let Server: Cache
 
 let commit = async function () {
   await Server.put( REGISTRY, new Response( new Blob( [ stringify( RegistryBundle ) ], { type: 'application/json' } ) ) )
   return true
 }
-
-let ready = async function () {
-  Server = await caches.open( 'registry-server' )
-
-  let registry = await Server.match( REGISTRY )
-
-  if ( registry ) {
-    RegistryBundle = await registry.json()
-  }
-  else {
-    RegistryBundle = {}
-    await commit()
-  }
-
-  return Registry
-}()
 
 interface Change {
   entry: RegistryEntry
@@ -96,7 +80,7 @@ const chainHandler: ProxyHandler<RegistryType> = {
 const chainGet = function ( array: RegistryEntry ): string | number {
   let current = new Proxy( RegistryBundle, chainHandler )
   while ( array.length ) {
-    current = current[ array.shift() ]
+    current = current[ array.shift() as string ]
   }
   // @ts-expect-error
   return current.value
@@ -105,7 +89,7 @@ const chainGet = function ( array: RegistryEntry ): string | number {
 const chainSet = function ( array: RegistryEntry, value: string | number ): void {
   let current = new Proxy( RegistryBundle, chainHandler )
   while ( array.length >= 2 ) {
-    current = current[ array.shift() ]
+    current = current[ array.shift() as string ]
   }
   // @ts-expect-error
   current[ array.shift() ] = value
@@ -123,6 +107,9 @@ const chainCleanup = function ( obj: RegistryType ) {
   if ( '_' === ownKeys( obj ).join() && null === obj._ ) {
     return true
   }
+  else {
+    return false
+  }
 }
 
 
@@ -132,7 +119,7 @@ const chainCleanup = function ( obj: RegistryType ) {
 
 
 
-let RegistryBundle: RegistryType = null
+let RegistryBundle: RegistryType
 
 const Registry = {
   set ( array: RegistryEntry, value: RegistryValue ) {
@@ -149,6 +136,22 @@ const Registry = {
     RegistryEvent.unsubscribe( array.slice(), fn )
   }
 }
+
+let ready = async function () {
+  Server = await caches.open( 'registry-server' )
+
+  let registry = await Server.match( REGISTRY )
+
+  if ( registry ) {
+    RegistryBundle = await registry.json()
+  }
+  else {
+    RegistryBundle = {}
+    await commit()
+  }
+
+  return Registry
+}()
 
 const RegistryEvent = new MessageNexus
 
