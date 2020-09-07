@@ -9,12 +9,12 @@ import {
 } from './common'
 
 import MessageNexus from '@dnvr/message-nexus'
-import RegistryWorker from 'sharedworker-loader!./worker'
+import RegistryWorker from 'sharedworker-loader!./registry'
 
 let RegistryBundle: RegistryType
 
 function makeArray ( array: RegistryKey | RegistryEntry ): RegistryEntry {
-  return Array.isArray( array ) ? array : [ array ]
+  return Array.isArray( array ) ? array.slice() : [ array ]
 }
 
 const Registry = {
