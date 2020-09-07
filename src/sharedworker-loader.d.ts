@@ -1,7 +1,7 @@
 declare module 'sharedworker-loader!*' {
-  class WebpackWorker extends SharedWorker {
+  class ExportedSharedWorker extends SharedWorker {
     constructor ()
   }
 
-  export default WebpackWorker
+  export default ExportedSharedWorker
 }

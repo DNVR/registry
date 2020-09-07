@@ -1,67 +1,74 @@
+import {
+  RegistryKey,
+  RegistryEntry,
+  RegistryValue,
+
+  RegistryType,
+
+  Message
+} from './common'
+
 import MessageNexus from '@dnvr/message-nexus'
+import RegistryWorker from 'sharedworker-loader!./worker'
 
-type RegistryKey = string | number
-type RegistryEntry = Array<RegistryKey>
-type RegistryValue = string | number
+let RegistryBundle: RegistryType
 
-interface RegistryEndpoint {
-  _: RegistryValue
-}
-
-interface RegistryType {
-  [ key: string ]: RegistryType & RegistryEndpoint
-  [ key: number ]: RegistryType & RegistryEndpoint
-}
-
-const REGISTRY = '?registry'
-
-let {
-  Reflect: {
-    ownKeys,
-    deleteProperty
+const Registry = {
+  set ( array: RegistryEntry, value: RegistryValue ) {
+    library.port.postMessage( { type: 'change', entry: array, value: value } )
   },
-  JSON: {
-    stringify
+  get ( array: RegistryEntry ) {
+    let current = new Proxy( RegistryBundle, handler )
+    while ( array.length ) {
+      current = current[ array.shift() as RegistryKey ]
+    }
+    return current.value
+  },
+  watch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+    RegistryEvent.subscribe( array.slice(), fn )
+    registryReady.then( ( Registry ) => Registry.get( array.slice() ) ).then( ( value ) => { if ( null !== value ) fn( value, null, array.slice() ) } )
+  },
+  unwatch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+    RegistryEvent.unsubscribe( array.slice(), fn )
+  },
+  get ready (): Promise< typeof Registry > {
+    return registryReady
   }
-} = self
-
-let Server: Cache
-
-let commit = async function () {
-  await Server.put( REGISTRY, new Response( new Blob( [ stringify( RegistryBundle ) ], { type: 'application/json' } ) ) )
-  return true
 }
 
-interface Change {
-  entry: RegistryEntry
-  value: RegistryValue
-}
+let registryResolver: ( value: typeof Registry ) => void
+let registryReady: Promise< typeof Registry > = new Promise( function ( resolve ) {
+  registryResolver = resolve
+})
 
-let changeHandler: ( change: Change ) => void = function ( { entry, value } ) {
-  let old = chainGet( entry.slice() )
+let messageReception = function ( { data }: Message ) {
+  if ( 'change' === data.type ) {
+    let { entry, old, value } = data
 
-  if ( value !== old ) {
-    chainSet( entry.slice(), value )
-    chainCleanup( RegistryBundle )
-    commit()
-
+    registrySet( entry.slice(), value )
     RegistryEvent.publish( entry.slice(), value, old, entry.slice() )
   }
+  else if ( 'setup' === data.type ) {
+    RegistryBundle = data.bundle
+    registryResolver( Registry )
+  }
 }
 
-const chainHandler: ProxyHandler<RegistryType> = {
-  get ( target, name: keyof RegistryType ) {
-    switch ( name ) {
-      case 'value':
-        return target._
-        break
+let library = new RegistryWorker
 
-      default:
-        target[ name ] = target[ name ] || { _: null }
-        return new Proxy( target[ name ], chainHandler )
+library.port.addEventListener( 'message', messageReception )
+library.port.start()
+
+const handler: ProxyHandler<RegistryType> = {
+  get ( target, name: RegistryKey ) {
+    if ( 'value' === name ) {
+      return target._
+    }
+    else {
+      return new Proxy( target[ name ] = target[ name ] || { _: null }, handler )
     }
   },
-  set ( target, name: keyof RegistryType, value: string | number ) {
+  set ( target, name: RegistryKey, value: RegistryValue ) {
 
     if ( '_' === name || 'value' === name || 'object' === typeof value && null !== value ) {
       return false
@@ -77,81 +84,15 @@ const chainHandler: ProxyHandler<RegistryType> = {
   }
 }
 
-const chainGet = function ( array: RegistryEntry ): string | number {
-  let current = new Proxy( RegistryBundle, chainHandler )
-  while ( array.length ) {
-    current = current[ array.shift() as string ]
-  }
-  // @ts-expect-error
-  return current.value
-}
-
-const chainSet = function ( array: RegistryEntry, value: string | number ): void {
-  let current = new Proxy( RegistryBundle, chainHandler )
+async function registrySet ( array: RegistryEntry, value: RegistryValue ) {
+  await Registry.ready
+  var current = new Proxy( RegistryBundle, handler )
   while ( array.length >= 2 ) {
-    current = current[ array.shift() as string ]
+    current = current[ array.shift() as RegistryKey ]
   }
-  // @ts-expect-error
-  current[ array.shift() ] = value
+  // @ts-ignore
+  current[ array.shift() as RegistryKey ] = value
 }
-
-const chainCleanup = function ( obj: RegistryType ) {
-  void ( ownKeys( obj ) as Array<string> ).forEach( ( entry ) => {
-    if ( '_' !== entry ) {
-      if ( chainCleanup( obj[ entry ] ) ) {
-        deleteProperty( obj, entry )
-      }
-    }
-  } )
-
-  if ( '_' === ownKeys( obj ).join() && null === obj._ ) {
-    return true
-  }
-  else {
-    return false
-  }
-}
-
-
-
-
-
-
-
-
-let RegistryBundle: RegistryType
-
-const Registry = {
-  set ( array: RegistryEntry, value: RegistryValue ) {
-    ready.then( () => changeHandler( { entry: array, value: value } ) )
-  },
-  get ( array: RegistryEntry ) {
-    return chainGet( array )
-  },
-  watch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
-    RegistryEvent.subscribe( array.slice(), fn )
-    ready.then( ( Registry ) => Registry.get( array.slice() ) ).then( ( value ) => { if ( null !== value ) fn( value, null, array.slice() ) } )
-  },
-  unwatch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
-    RegistryEvent.unsubscribe( array.slice(), fn )
-  }
-}
-
-let ready = async function () {
-  Server = await caches.open( 'registry-server' )
-
-  let registry = await Server.match( REGISTRY )
-
-  if ( registry ) {
-    RegistryBundle = await registry.json()
-  }
-  else {
-    RegistryBundle = {}
-    await commit()
-  }
-
-  return Registry
-}()
 
 const RegistryEvent = new MessageNexus
 
