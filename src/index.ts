@@ -13,33 +13,41 @@ import RegistryWorker from 'sharedworker-loader!./worker'
 
 let RegistryBundle: RegistryType
 
+function makeArray ( array: RegistryKey | RegistryEntry ): RegistryEntry {
+  return Array.isArray( array ) ? array : [ array ]
+}
+
 const Registry = {
-  set ( array: RegistryEntry, value: RegistryValue ) {
+  set ( entry: RegistryKey | RegistryEntry, value: RegistryValue ) {
+    let array = makeArray( entry )
     library.port.postMessage( { type: 'change', entry: array, value: value } )
   },
-  get ( array: RegistryEntry ) {
+  get ( entry: RegistryKey | RegistryEntry ) {
+    let array = makeArray( entry )
     let current = new Proxy( RegistryBundle, handler )
     while ( array.length ) {
       current = current[ array.shift() as RegistryKey ]
     }
     return current.value
   },
-  watch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+  watch ( entry: RegistryKey | RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+    let array = makeArray( entry )
     RegistryEvent.subscribe( array.slice(), fn )
     registryReady.then( ( Registry ) => Registry.get( array.slice() ) ).then( ( value ) => { if ( null !== value ) fn( value, null, array.slice() ) } )
   },
-  unwatch ( array: RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+  unwatch ( entry: RegistryKey | RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+    let array = makeArray( entry )
     RegistryEvent.unsubscribe( array.slice(), fn )
   },
-  get ready (): Promise< typeof Registry > {
+  get ready (): Promise<typeof Registry> {
     return registryReady
   }
 }
 
 let registryResolver: ( value: typeof Registry ) => void
-let registryReady: Promise< typeof Registry > = new Promise( function ( resolve ) {
+let registryReady: Promise<typeof Registry> = new Promise( function ( resolve ) {
   registryResolver = resolve
-})
+} )
 
 let messageReception = function ( { data }: Message ) {
   if ( 'change' === data.type ) {
