@@ -2,7 +2,7 @@
   "name": "@dnvr/registry",
   "version": "1.0.3",
   "description": "A JavaScript library that simulates the registry.",
-  "main": "dist/index.js",
+  "browser": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build:clear": "npx rimraf dist",
