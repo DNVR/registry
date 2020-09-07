@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build:clear": "npx rimraf dist",
-    "build:construct": "npx webpack --mode production",
+    "build:construct": "npx tsc -p .",
     "build": "npm run build:clear && npm run build:construct"
   },
   "repository": {
@@ -20,17 +20,19 @@
   },
   "homepage": "https://github.com/DNVR/registry#readme",
   "devDependencies": {
+    "@babel/core": "^7.11.6",
     "@types/sharedworker": "0.0.29",
     "babel-loader": "^8.1.0",
     "rimraf": "^3.0.2",
-    "ts-loader": "^8.0.2",
+    "sharedworker-loader": "^2.1.1",
+    "ts-loader": "^8.0.3",
     "typescript": "^3.9.7",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12",
-    "worker-loader": "^3.0.1",
+    "worker-loader": "^3.0.2",
     "worker-plugin": "^5.0.0"
   },
   "dependencies": {
-    "@dnvr/message-nexus": "^1.0.5"
+    "@dnvr/message-nexus": "^1.0.8"
   }
 }
