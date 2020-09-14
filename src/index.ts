@@ -13,17 +13,17 @@ import RegistryWorker from 'sharedworker-loader!./registry'
 
 let RegistryBundle: RegistryType
 
-function makeArray ( array: RegistryKey | RegistryEntry ): RegistryEntry {
+function forceArray ( array: RegistryKey | RegistryEntry ): RegistryEntry {
   return Array.isArray( array ) ? array.slice() : [ array ]
 }
 
 const Registry = {
   set ( entry: RegistryKey | RegistryEntry, value: RegistryValue ) {
-    let array = makeArray( entry )
+    let array = forceArray( entry )
     library.port.postMessage( { type: 'change', entry: array, value: value } )
   },
   get ( entry: RegistryKey | RegistryEntry ) {
-    let array = makeArray( entry )
+    let array = forceArray( entry )
     let current = new Proxy( RegistryBundle, handler )
     while ( array.length ) {
       current = current[ array.shift() as RegistryKey ]
@@ -31,12 +31,12 @@ const Registry = {
     return current.value
   },
   watch ( entry: RegistryKey | RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
-    let array = makeArray( entry )
+    let array = forceArray( entry )
     RegistryEvent.subscribe( array.slice(), fn )
     registryReady.then( ( Registry ) => Registry.get( array.slice() ) ).then( ( value ) => { if ( null !== value ) fn( value, null, array.slice() ) } )
   },
   unwatch ( entry: RegistryKey | RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
-    let array = makeArray( entry )
+    let array = forceArray( entry )
     RegistryEvent.unsubscribe( array.slice(), fn )
   },
   get ready (): Promise<typeof Registry> {
