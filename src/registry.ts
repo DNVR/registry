@@ -32,7 +32,7 @@ let Registry: RegistryType
 
 let RegistryBundle: Setup
 
-let commit = async function () {
+let commitChanges = async function () {
   await Server.put( REGISTRY, new Response( new Blob( [ stringify( Registry ) ], { type: 'application/json' } ) ) )
   return true
 }
@@ -47,7 +47,7 @@ let ready = async function () {
   }
   else {
     Registry = {}
-    await commit()
+    await commitChanges()
   }
 
   RegistryBundle = {
@@ -66,7 +66,7 @@ let changeHandler = function ( { data: { entry, value } }: { data: ChangeData } 
   if ( value !== old ) {
     chainSet( entry.slice(), value )
     chainCleanup( Registry )
-    commit()
+    commitChanges()
 
     portCollection.forEach( inform, {
       type: 'change',
