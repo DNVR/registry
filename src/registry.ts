@@ -32,7 +32,7 @@ let Registry: RegistryType
 
 let RegistryBundle: Setup
 
-let commitChanges = async function () {
+async function commitChanges () {
   await Server.put( REGISTRY, new Response( new Blob( [ stringify( Registry ) ], { type: 'application/json' } ) ) )
   return true
 }
