@@ -53,7 +53,7 @@ let messageReception = function ( { data }: Message ) {
   if ( 'change' === data.type ) {
     let { entry, old, value } = data
 
-    registrySet( entry.slice(), value )
+    globalSet( entry.slice(), value )
     RegistryEvent.publish( entry.slice(), value, old, entry.slice() )
   }
   else if ( 'setup' === data.type ) {
@@ -92,7 +92,7 @@ const handler: ProxyHandler<RegistryType> = {
   }
 }
 
-async function registrySet ( array: RegistryEntry, value: RegistryValue ) {
+async function globalSet ( array: RegistryEntry, value: RegistryValue ) {
   await Registry.ready
   var current = new Proxy( RegistryBundle, handler )
   while ( array.length >= 2 ) {
