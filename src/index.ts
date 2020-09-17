@@ -44,9 +44,9 @@ const Registry = {
   }
 }
 
-let registryResolver: ( value: typeof Registry ) => void
+let resolver: ( value: typeof Registry ) => void
 let registryReady: Promise<typeof Registry> = new Promise( function ( resolve ) {
-  registryResolver = resolve
+  resolver = resolve
 } )
 
 let messageReception = function ( { data }: Message ) {
@@ -58,7 +58,7 @@ let messageReception = function ( { data }: Message ) {
   }
   else if ( 'setup' === data.type ) {
     RegistryBundle = data.bundle
-    registryResolver( Registry )
+    resolver( Registry )
   }
 }
 
