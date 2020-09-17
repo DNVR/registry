@@ -94,7 +94,7 @@ const handler: ProxyHandler<RegistryType> = {
 
 async function globalSet ( array: RegistryEntry, value: RegistryValue ) {
   await Registry.ready
-  var current = new Proxy( RegistryBundle, handler )
+  let current: RegistryType = new Proxy( RegistryBundle, handler )
   while ( array.length >= 2 ) {
     current = current[ array.shift() as RegistryKey ]
   }
