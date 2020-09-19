@@ -49,7 +49,9 @@ let registryReady: Promise<typeof Registry> = new Promise( function ( resolve ) 
   resolver = resolve
 } )
 
-let messageReception = function ( { data }: Message ) {
+let library = new RegistryWorker
+
+library.port.addEventListener( 'message', function messageReception ( { data }: Message ) {
   if ( 'change' === data.type ) {
     let { entry, old, value } = data
 
@@ -60,11 +62,8 @@ let messageReception = function ( { data }: Message ) {
     RegistryBundle = data.bundle
     resolver( Registry )
   }
-}
+} )
 
-let library = new RegistryWorker
-
-library.port.addEventListener( 'message', messageReception )
 library.port.start()
 
 const handler: ProxyHandler<RegistryType> = {
