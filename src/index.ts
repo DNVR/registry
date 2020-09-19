@@ -30,14 +30,14 @@ const Registry = {
     }
     return current.value
   },
-  watch ( entry: RegistryKey | RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+  watch ( entry: RegistryKey | RegistryEntry, f: ( value: any, old: any, name: RegistryEntry ) => void ) {
     let array = forceArray( entry )
-    RegistryEvent.subscribe( array.slice(), fn )
-    registryReady.then( ( Registry ) => Registry.get( array.slice() ) ).then( ( value ) => { if ( null !== value ) fn( value, null, array.slice() ) } )
+    RegistryEvent.subscribe( array.slice(), f )
+    registryReady.then( ( Registry ) => Registry.get( array.slice() ) ).then( ( value ) => { if ( null !== value ) f( value, null, array.slice() ) } )
   },
-  unwatch ( entry: RegistryKey | RegistryEntry, fn: ( value: any, old: any, name: RegistryEntry ) => void ) {
+  unwatch ( entry: RegistryKey | RegistryEntry, f: ( value: any, old: any, name: RegistryEntry ) => void ) {
     let array = forceArray( entry )
-    RegistryEvent.unsubscribe( array.slice(), fn )
+    RegistryEvent.unsubscribe( array.slice(), f )
   },
   get ready (): Promise<typeof Registry> {
     return registryReady
@@ -67,6 +67,7 @@ library.port.addEventListener( 'message', function messageReception ( { data }: 
 library.port.start()
 
 const handler: ProxyHandler<RegistryType> = {
+
   get ( target, name: RegistryKey ) {
     if ( 'value' === name ) {
       return target._
@@ -75,6 +76,7 @@ const handler: ProxyHandler<RegistryType> = {
       return new Proxy( target[ name ] = target[ name ] || { _: null }, handler )
     }
   },
+
   set ( target, name: RegistryKey, value: RegistryValue ) {
 
     if ( '_' === name || 'value' === name || 'object' === typeof value && null !== value ) {
@@ -89,6 +91,7 @@ const handler: ProxyHandler<RegistryType> = {
 
     return true
   }
+
 }
 
 async function globalSet ( array: RegistryEntry, value: RegistryValue ) {
